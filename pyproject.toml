@@ -22,6 +22,11 @@ license = "MIT"
 readme = "README.md"
 packages = [{ include = "graphrag" }]
 
+[[tool.poetry.source]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+priority = "default"
+
 [tool.poetry-dynamic-versioning]
 enable = true
 style = "pep440"
