@@ -23,9 +23,24 @@ from graphrag.query.structured_search.local_search.mixed_context import (
 )
 from graphrag_r.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
-from graphrag_r.query.structured_search.fixed_local_index import FIXED_LOCAL_INDEX
+from graphrag_r.query.structured_search.fixed_local_index import FIXED_LOCAL_INDEX,CHUNK_PROMPT,JUDGE_DISEASE_PROMPT
 import openai
 from openai import OpenAI
+
+
+# 调用deepseek模型
+def get_deepseek_response(query=""):
+    client = OpenAI(api_key="sk-ae927ed128bd4e7e8255be1cd5ab395e", base_url="https://api.deepseek.com")
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": query},
+        ],
+        stream=False
+    )
+    return response.choices[0].message.content
+
+
 INPUT_DIR = "/home/xiangchao/home/muxinyu/graphrag_demo/ragtest/output/20240810-104628/artifacts"
 LANCEDB_URI = f"{INPUT_DIR}/lancedb"
 
@@ -158,36 +173,36 @@ A0.67mg/dl↑；
 
 根据上述病例信息判断患者所患有的疾病
 """
+
+
 result = search_engine.search(question)
 print(result.response)
-# openai.api_key = "fk227782-dvgh0rCcp2ZhANj6B1dg18ACjGG82JLm"  
-# openai.base_url = "https://openai.api2d.net/v1/"  
-
-
-# completion = openai.chat.completions.create(
-#     model="gpt-4o",
-#     messages=[{"role": "user", "content": FIXED_LOCAL_INDEX.format(result.response,result.context_data["sources"].text)}]
-# )
-# print(result.context_data["sources"])
 # 假设 result.context_data["sources"] 是一个 DataFrame
 df = result.context_data["sources"]
-# 使用 apply 方法拼接字符串
-full_text = ''.join(df['text'].apply(str))
+num_rows = df.shape[0]  # 获取行数
+if num_rows == 1:
+    # print(111)
+    full_text = ''.join(df['text'].apply(str))  # 获取text列内容
+    chunk_query = CHUNK_PROMPT.format(full_text)
+    chunk_result = get_deepseek_response(query=chunk_query)
+    segements = chunk_result.split("**")[1:] # 分段
+    output_str = ""
+    for i, segment in enumerate(segements):
+        # print(f"Segment {i+1}:\n{segment}\n")
+        judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,result.response))
+        # print(judge_result)
+        if(judge_result == "是"):
+            output_str += segment
+    print(output_str)
 
-# 打印完整字符串
-# print(full_text)
-
-# 打印 DataFrame
-# print(df)
-# print(completion.choices[0].message.content)
-client = OpenAI(api_key="sk-ae927ed128bd4e7e8255be1cd5ab395e", base_url="https://api.deepseek.com")
-# print(result.context_data["sources"].text)
-response = client.chat.completions.create(
-    model="deepseek-chat",
-    messages=[
-        {"role": "system", "content": FIXED_LOCAL_INDEX.format(result.response,full_text)},
-    ],
-    stream=False
-)
-
-print(response.choices[0].message.content)
+else:
+    output_str = ""
+    for index, row in df.iterrows():
+        full_text = row['text']
+        chunk_result = get_deepseek_response(query=CHUNK_PROMPT.format(full_text))
+        segements = chunk_result.split("**")[1:]
+        for i, segment in enumerate(segements):
+            judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,result.response))
+            if(judge_result == "是"):
+                output_str += segment
+    print(output_str)
