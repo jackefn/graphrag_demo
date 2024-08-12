@@ -16,9 +16,9 @@ from graphrag.query.context_builder.conversation_history import (
 from graphrag.query.llm.base import BaseLLM, BaseLLMCallback
 from graphrag.query.llm.text_utils import num_tokens
 from graphrag.query.structured_search.base import BaseSearch, SearchResult
-# from graphrag.query.structured_search.local_search.system_prompt import (
-#     LOCAL_SEARCH_SYSTEM_PROMPT,
-# )
+from graphrag.query.structured_search.local_search.system_prompt import (
+    LOCAL_SEARCH_SYSTEM_PROMPT,
+)
 from graphrag_r.query.structured_search.local_search.fixed_local_search_prompt import FIXED_LOCAL_SEARCH_PROMPT
 DEFAULT_LLM_PARAMS = {
     "max_tokens": 1500,
@@ -36,7 +36,7 @@ class LocalSearch(BaseSearch):
         llm: BaseLLM,
         context_builder: LocalContextBuilder,
         token_encoder: tiktoken.Encoding | None = None,
-        system_prompt: str = FIXED_LOCAL_SEARCH_PROMPT,
+        system_prompt: str = LOCAL_SEARCH_SYSTEM_PROMPT,
         response_type: str = "multiple paragraphs",
         callbacks: list[BaseLLMCallback] | None = None,
         llm_params: dict[str, Any] = DEFAULT_LLM_PARAMS,
@@ -72,7 +72,7 @@ class LocalSearch(BaseSearch):
         log.info("GENERATE ANSWER: %s. QUERY: %s", start_time, query)
         try:
             search_prompt = self.system_prompt.format(
-                context_data=context_text, response_type=self.response_type
+                context_records,context_records
             )
             # print(search_prompt)
             search_messages = [
@@ -125,7 +125,7 @@ class LocalSearch(BaseSearch):
         log.info("GENERATE ANSWER: %d. QUERY: %s", start_time, query)
         try:
             search_prompt = self.system_prompt.format(
-                context_records,context_records
+                context_data=context_text, response_type=self.response_type
             )
             # print(search_prompt)
             search_messages = [

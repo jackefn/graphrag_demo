@@ -4,7 +4,7 @@ skip_workflows: []
 llm:
   api_key: ${GRAPHRAG_API_KEY}
   type: openai_chat # or azure_openai_chat
-  model: gpt-4-turbo-preview
+  model: gpt-4o
   model_supports_json: true # recommended if this is available for your model.
   # max_tokens: 4000
   # request_timeout: 180.0
@@ -52,8 +52,8 @@ embeddings:
 
 
 chunks:
-  size: 4096
-  overlap: 100
+  size: 14000
+  overlap: 1000
   group_by_columns: [id] # by default, we don't allow chunks to cross documents
     
 input:

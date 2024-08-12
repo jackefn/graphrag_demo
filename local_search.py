@@ -23,7 +23,7 @@ from graphrag.query.structured_search.local_search.mixed_context import (
 )
 from graphrag_r.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
-from graphrag_r.query.structured_search.fixed_local_index import FIXED_LOCAL_INDEX,CHUNK_PROMPT,JUDGE_DISEASE_PROMPT
+from graphrag_r.query.structured_search.fixed_local_index import FIXED_LOCAL_INDEX,CHUNK_PROMPT,JUDGE_DISEASE_PROMPT,DELETE_EXTERNAL_PROMPT
 import openai
 from openai import OpenAI
 
@@ -41,7 +41,7 @@ def get_deepseek_response(query=""):
     return response.choices[0].message.content
 
 
-INPUT_DIR = "/home/xiangchao/home/muxinyu/graphrag_demo/ragtest/output/20240810-104628/artifacts"
+INPUT_DIR = "/home/xiangchao/home/muxinyu/graphrag_demo/ragtest/output/20240812-174328/artifacts"
 LANCEDB_URI = f"{INPUT_DIR}/lancedb"
 
 COMMUNITY_REPORT_TABLE = "create_final_community_reports"
@@ -74,13 +74,13 @@ text_unit_df = pd.read_parquet(f"{INPUT_DIR}/{TEXT_UNIT_TABLE}.parquet")
 text_units = read_indexer_text_units(text_unit_df)
 
 
-api_key = "fk227782-dvgh0rCcp2ZhANj6B1dg18ACjGG82JLm"
-llm_model = "gpt-4-turbo-preview"
+api_key = "sk-ae927ed128bd4e7e8255be1cd5ab395e"
+llm_model = "deepseek-chat"
 embedding_model = "text-embedding-3-small"
 
 llm = ChatOpenAI(
     api_key=api_key,
-    api_base="https://openai.api2d.net/v1/",
+    api_base="https://api.deepseek.com/",
     model=llm_model,
     api_type=OpenaiApiType.OpenAI,  
     max_retries=20,
@@ -89,7 +89,7 @@ llm = ChatOpenAI(
 token_encoder = tiktoken.get_encoding("cl100k_base")
 
 text_embedder = OpenAIEmbedding(
-    api_key=api_key,
+    api_key="fk227782-dvgh0rCcp2ZhANj6B1dg18ACjGG82JLm",
     api_base="https://openai.api2d.net/v1/",
     api_type=OpenaiApiType.OpenAI,
     model=embedding_model,
@@ -107,9 +107,9 @@ context_builder = LocalSearchMixedContext(
     token_encoder=token_encoder,
 )
 local_context_params = {
-    "text_unit_prop": 0.6,
+    "text_unit_prop": 1,
     "community_prop": 0,
-    "conversation_history_max_turns": 5,
+    "conversation_history_max_turns": 1,
     "conversation_history_user_turns_only": True,
     "top_k_mapped_entities": 10,
     "top_k_relationships": 10,
@@ -176,7 +176,9 @@ A0.67mg/dl↑；
 
 
 result = search_engine.search(question)
-print(result.response)
+# print(result.response)
+disease_result = get_deepseek_response(query=FIXED_LOCAL_INDEX.format(result.response))
+print(disease_result)
 # 假设 result.context_data["sources"] 是一个 DataFrame
 df = result.context_data["sources"]
 num_rows = df.shape[0]  # 获取行数
@@ -186,14 +188,16 @@ if num_rows == 1:
     chunk_query = CHUNK_PROMPT.format(full_text)
     chunk_result = get_deepseek_response(query=chunk_query)
     segements = chunk_result.split("**")[1:] # 分段
+    # print(segements)
     output_str = ""
     for i, segment in enumerate(segements):
         # print(f"Segment {i+1}:\n{segment}\n")
-        judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,result.response))
+        judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,disease_result))
         # print(judge_result)
         if(judge_result == "是"):
             output_str += segment
-    print(output_str)
+    final_result = get_deepseek_response(DELETE_EXTERNAL_PROMPT.format(disease_result,output_str))
+    print(final_result)
 
 else:
     output_str = ""
@@ -202,7 +206,8 @@ else:
         chunk_result = get_deepseek_response(query=CHUNK_PROMPT.format(full_text))
         segements = chunk_result.split("**")[1:]
         for i, segment in enumerate(segements):
-            judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,result.response))
+            judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,disease_result))
             if(judge_result == "是"):
                 output_str += segment
-    print(output_str)
+    final_result = get_deepseek_response(DELETE_EXTERNAL_PROMPT.format(disease_result,output_str))
+    print(final_result)
