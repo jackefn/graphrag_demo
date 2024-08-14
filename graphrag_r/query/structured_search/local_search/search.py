@@ -19,7 +19,7 @@ from graphrag.query.structured_search.base import BaseSearch, SearchResult
 from graphrag.query.structured_search.local_search.system_prompt import (
     LOCAL_SEARCH_SYSTEM_PROMPT,
 )
-from graphrag_r.query.structured_search.local_search.fixed_local_search_prompt import FIXED_LOCAL_SEARCH_PROMPT
+from graphrag_r.query.structured_search.local_search.fixed_local_search_prompt import FIXED_LOCAL_SEARCH_PROMPT,MEDICAL_DIAGNOSIS_SYSTEM_PROMPT
 DEFAULT_LLM_PARAMS = {
     "max_tokens": 1500,
     "temperature": 0.0,
@@ -36,7 +36,7 @@ class LocalSearch(BaseSearch):
         llm: BaseLLM,
         context_builder: LocalContextBuilder,
         token_encoder: tiktoken.Encoding | None = None,
-        system_prompt: str = LOCAL_SEARCH_SYSTEM_PROMPT,
+        system_prompt: str = MEDICAL_DIAGNOSIS_SYSTEM_PROMPT,
         response_type: str = "multiple paragraphs",
         callbacks: list[BaseLLMCallback] | None = None,
         llm_params: dict[str, Any] = DEFAULT_LLM_PARAMS,

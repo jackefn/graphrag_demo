@@ -41,7 +41,7 @@ def get_deepseek_response(query=""):
     return response.choices[0].message.content
 
 
-INPUT_DIR = "/home/xiangchao/home/muxinyu/graphrag_demo/ragtest/output/20240812-174328/artifacts"
+INPUT_DIR = "/home/xiangchao/home/muxinyu/graphrag_demo/ragtest/output/20240814-112215/artifacts"
 LANCEDB_URI = f"{INPUT_DIR}/lancedb"
 
 COMMUNITY_REPORT_TABLE = "create_final_community_reports"
@@ -107,7 +107,7 @@ context_builder = LocalSearchMixedContext(
     token_encoder=token_encoder,
 )
 local_context_params = {
-    "text_unit_prop": 1,
+    "text_unit_prop": 0.6,
     "community_prop": 0,
     "conversation_history_max_turns": 1,
     "conversation_history_user_turns_only": True,
@@ -179,8 +179,9 @@ result = search_engine.search(question)
 # print(result.response)
 disease_result = get_deepseek_response(query=FIXED_LOCAL_INDEX.format(result.response))
 print(disease_result)
-# 假设 result.context_data["sources"] 是一个 DataFrame
+
 df = result.context_data["sources"]
+# print(df)
 num_rows = df.shape[0]  # 获取行数
 if num_rows == 1:
     # print(111)
@@ -190,6 +191,7 @@ if num_rows == 1:
     segements = chunk_result.split("**")[1:] # 分段
     # print(segements)
     output_str = ""
+    # print(segements)
     for i, segment in enumerate(segements):
         # print(f"Segment {i+1}:\n{segment}\n")
         judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,disease_result))
@@ -203,8 +205,10 @@ else:
     output_str = ""
     for index, row in df.iterrows():
         full_text = row['text']
+        # print(full_text)
         chunk_result = get_deepseek_response(query=CHUNK_PROMPT.format(full_text))
         segements = chunk_result.split("**")[1:]
+        # print(segements)
         for i, segment in enumerate(segements):
             judge_result = get_deepseek_response(query=JUDGE_DISEASE_PROMPT.format(segment,disease_result))
             if(judge_result == "是"):
